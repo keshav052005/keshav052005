@@ -1,0 +1,54 @@
+<?php
+session_start();
+
+// Database connection details (replace with your actual credentials)
+$servername = "your_servername";
+$username = "your_username";
+$password = "your_password";
+$dbname = "your_database_name";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = $_POST["username"];
+    $password = $_POST["password"];
+
+    // Check if user exists in the database
+    $sql = "SELECT * FROM users WHERE username='$username' AND password='$password'";
+    $result = $conn->query($sql);
+
+    if ($result->num_rows > 0) {
+        // User found, log in
+        $_SESSION["username"] = $username;
+        header("Location: dashboard.php"); // Redirect to dashboard
+    } else {
+        // User not found, check if it's a new registration
+        $sql = "SELECT * FROM users WHERE username='$username'";
+        $result = $conn->query($sql);
+
+        if ($result->num_rows == 0) {
+            // New user, send OTP to 6376096599
+            $otp = rand(1000, 9999); // Generate a 4-digit OTP
+            // Use a suitable OTP sending service or library to send the OTP
+            // (e.g., Twilio, Vonage, or a custom SMS gateway)
+            send_otp_to_number("6376096599", $otp);
+
+            // Store the OTP in the database (e.g., in a temporary table)
+            $sql = "INSERT INTO temp_otp (username, otp) VALUES ('$username', '$otp')";
+            $conn->query($sql);
+
+            header("Location: otp_verification.php"); // Redirect to OTP verification page
+        } else {
+            echo "Invalid username or password.";
+        }
+    }
+}
+
+$conn->close();
+?>
